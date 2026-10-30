@@ -25,20 +25,20 @@ selected_bg = st.sidebar.selectbox(
 
 bg_url = wallpaper_options[selected_bg]
 
-# Inject CSS for Background & Card Styling
+# Inject CSS for Glassmorphism & Background Styling
 st.markdown(
     f"""
     <style>
     .stApp {{
-        background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.75)), url("{bg_url}");
+        background: linear-gradient(rgba(0, 0, 0, 0.70), rgba(0, 0, 0, 0.80)), url("{bg_url}");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
     }}
     .main-card {{
         background: rgba(255, 255, 255, 0.12);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         padding: 24px;
         border-radius: 16px;
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -53,7 +53,7 @@ st.markdown(
 )
 
 # ==========================================
-# 2. CNN Model Architecture (Same as Kaggle)
+# 2. CNN Model Architecture
 # ==========================================
 class SimpleCNN(nn.Module):
     def __init__(self, num_classes=3):
@@ -95,7 +95,7 @@ transform = transforms.Compose([
 ])
 
 # ==========================================
-# 3. Main UI & Prediction Logic
+# 3. Main Interface & Detection Logic
 # ==========================================
 st.markdown('<div class="main-card">', unsafe_allow_html=True)
 st.title("🩺 AI Skin Lesion Detection Assistant")
@@ -123,17 +123,23 @@ if uploaded_file is not None:
 
             st.write("### Diagnostic Result")
             
-            # Agar image skin lesion na ho ya confidence bohot low ho:
-            if predicted_class == "Not_Skin_Lesion" or confidence < 65.0:
+            # FIXED CHECK: Agar direct 'Not_Skin_Lesion' class predict ho tabhi invalid show kare
+            if predicted_class == "Not_Skin_Lesion":
                 st.error("⚠️ **Invalid Image Detected!**")
-                st.warning("Yeh image skin lesion ki nahi lag rahi ya clear nahi hai. Barah-e-karam skin spot/mole ki clear picture upload karein.")
+                st.warning("Yeh image skin lesion ki nahi lag rahi. Barah-e-karam skin spot/mole ki clear dermatoscopic picture upload karein.")
             else:
                 if predicted_class == "Malignant":
                     st.error(f"⚠️ Prediction: **{predicted_class}** (Cancerous risk detected)")
                 else:
-                    st.success(f"✅ Prediction: **{predicted_class}** (Non-cancerous)")
+                    st.success(f"✅ Prediction: **{predicted_class}** (Non-cancerous / Benign)")
                     
                 st.info(f"Model Confidence: **{confidence:.2f}%**")
+                
+                # Class probabilities breakdown
+                with st.expander("View Probabilities Breakdown"):
+                    for idx, cls_name in enumerate(classes):
+                        st.write(f"- **{cls_name}:** {probs[idx].item() * 100:.2f}%")
+                        
                 st.caption("Note: This tool is for educational purposes only. Always consult a certified dermatologist.")
 
 st.markdown('</div>', unsafe_allow_html=True)
