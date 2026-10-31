@@ -53,39 +53,34 @@ st.markdown(
 )
 
 # ==========================================
-# 2. CNN Model Architecture (Aligned with Saved Weights)
+# 2. CNN Model Architecture
 # ==========================================
 class SimpleCNN(nn.Module):
     def __init__(self, num_classes=3):
         super(SimpleCNN, self).__init__()
-        # Logs ke keys ke mutabiq BatchNorm layers shamil ki gayi hain:
-        # conv.0 -> Conv2d, conv.1 -> BatchNorm2d, conv.2 -> ReLU, conv.3 -> MaxPool2d
-        # conv.4 -> Conv2d, conv.5 -> BatchNorm2d, conv.6 -> ReLU, conv.7 -> MaxPool2d
+        # conv.0 to conv.7 (Matches checkpoint perfectly)
         self.conv = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=3, padding=1),
-            nn.BatchNorm2d(16),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2)
+            nn.Conv2d(3, 16, kernel_size=3, padding=1),   # conv.0
+            nn.BatchNorm2d(16),                           # conv.1
+            nn.ReLU(),                                    # conv.2
+            nn.MaxPool2d(2, 2),                           # conv.3
+            nn.Conv2d(16, 32, kernel_size=3, padding=1),  # conv.4
+            nn.BatchNorm2d(32),                           # conv.5
+            nn.ReLU(),                                    # conv.6
+            nn.MaxPool2d(2, 2)                            # conv.7
         )
         
-        # fc.0 -> Linear, fc.1 -> ReLU, fc.2 -> Dropout, fc.3 -> Linear/ReLU, fc.4 -> Linear (output)
+        # fc.0 to fc.4 (Matches fc.1.weight and fc.4.weight perfectly)
         self.fc = nn.Sequential(
-            nn.Linear(32 * 32 * 32, 128),
-            nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(128, 64),
-            nn.Linear(64, num_classes)
+            nn.Flatten(),                                 # fc.0 (no parameters)
+            nn.Linear(32 * 32 * 32, 64),                  # fc.1 (matches fc.1.weight/bias)
+            nn.ReLU(),                                    # fc.2
+            nn.Dropout(0.5),                              # fc.3 (matches missing fc.3 param)
+            nn.Linear(64, num_classes)                    # fc.4 (matches fc.4.weight/bias)
         )
 
     def forward(self, x):
-        x = self.conv(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        return x
+        return self.fc(self.conv(x))
 
 @st.cache_resource
 def load_trained_model():
