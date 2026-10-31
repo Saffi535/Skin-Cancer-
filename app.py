@@ -53,28 +53,39 @@ st.markdown(
 )
 
 # ==========================================
-# 2. CNN Model Architecture
+# 2. CNN Model Architecture (Aligned with Saved Weights)
 # ==========================================
 class SimpleCNN(nn.Module):
     def __init__(self, num_classes=3):
         super(SimpleCNN, self).__init__()
+        # Logs ke keys ke mutabiq BatchNorm layers shamil ki gayi hain:
+        # conv.0 -> Conv2d, conv.1 -> BatchNorm2d, conv.2 -> ReLU, conv.3 -> MaxPool2d
+        # conv.4 -> Conv2d, conv.5 -> BatchNorm2d, conv.6 -> ReLU, conv.7 -> MaxPool2d
         self.conv = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(16),
             nn.ReLU(),
             nn.MaxPool2d(2, 2),
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2, 2)
         )
+        
+        # fc.0 -> Linear, fc.1 -> ReLU, fc.2 -> Dropout, fc.3 -> Linear/ReLU, fc.4 -> Linear (output)
         self.fc = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(32 * 32 * 32, 64),
+            nn.Linear(32 * 32 * 32, 128),
             nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(128, 64),
             nn.Linear(64, num_classes)
         )
 
     def forward(self, x):
-        return self.fc(self.conv(x))
+        x = self.conv(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
 
 @st.cache_resource
 def load_trained_model():
@@ -123,7 +134,6 @@ if uploaded_file is not None:
 
             st.write("### Diagnostic Result")
             
-            # FIXED CHECK: Agar direct 'Not_Skin_Lesion' class predict ho tabhi invalid show kare
             if predicted_class == "Not_Skin_Lesion":
                 st.error("⚠️ **Invalid Image Detected!**")
                 st.warning("Yeh image skin lesion ki nahi lag rahi. Barah-e-karam skin spot/mole ki clear dermatoscopic picture upload karein.")
@@ -135,7 +145,6 @@ if uploaded_file is not None:
                     
                 st.info(f"Model Confidence: **{confidence:.2f}%**")
                 
-                # Class probabilities breakdown
                 with st.expander("View Probabilities Breakdown"):
                     for idx, cls_name in enumerate(classes):
                         st.write(f"- **{cls_name}:** {probs[idx].item() * 100:.2f}%")
